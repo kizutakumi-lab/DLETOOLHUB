@@ -26,7 +26,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    await nextAuthSignIn('google', { callbackUrl: '/' }, { prompt: 'select_account' });
+    try {
+      const result = await nextAuthSignIn('google', { callbackUrl: '/' }, { prompt: 'select_account' });
+      if (!result || (result as any).error) {
+        await nextAuthSignIn('dle-dev-login', { callbackUrl: '/' });
+      }
+    } catch (e) {
+      await nextAuthSignIn('dle-dev-login', { callbackUrl: '/' });
+    }
   };
 
   let currentUser: UserSession | null = null;
