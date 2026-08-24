@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const data = readHubData();
 
     if (body.action === 'delete') {
-      const updatedTools = data.tools.filter((t) => t.id !== body.id);
+      const updatedTools = data.tools.filter((t) => String(t.id) !== String(body.id));
       writeHubData({ ...data, tools: updatedTools });
       return NextResponse.json(updatedTools);
     }
@@ -22,12 +22,25 @@ export async function POST(req: Request) {
     const userEmail = body.userEmail || 'user@dle.jp';
     let updatedTools: Tool[];
 
-    if (toolData.id) {
-      updatedTools = data.tools.map((t) =>
-        t.id === toolData.id
-          ? { ...t, ...toolData, updated_at: new Date().toISOString() }
-          : t
-      );
+    const targetId = toolData.id ? String(toolData.id) : null;
+    const exists = targetId ? data.tools.some((t) => String(t.id) === targetId) : false;
+
+    if (exists && targetId) {
+      updatedTools = data.tools.map((t) => {
+        if (String(t.id) === targetId) {
+          return {
+            ...t,
+            name: toolData.name ?? t.name,
+            category: toolData.category ?? t.category,
+            color: toolData.color ?? t.color,
+            url: toolData.url ?? t.url,
+            description: toolData.description ?? t.description,
+            sort_order: toolData.sort_order ?? t.sort_order,
+            updated_at: new Date().toISOString(),
+          };
+        }
+        return t;
+      });
     } else {
       const newTool: Tool = {
         id: `tool-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,

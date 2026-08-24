@@ -38,7 +38,12 @@ export function ToolCard({
         {/* 上部: カテゴリバッジ ＆ お気に入り ＆ 編集・削除 */}
         <div className="flex items-center justify-between gap-2 mb-2">
           <span
-            className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md border ${colorTheme.badge} truncate max-w-[130px]`}
+            style={{
+              backgroundColor: colorTheme.badgeBg,
+              color: colorTheme.badgeText,
+              borderColor: colorTheme.badgeBorder,
+            }}
+            className="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-md border truncate max-w-[140px] shadow-sm"
             title={tool.category}
           >
             {tool.category}
