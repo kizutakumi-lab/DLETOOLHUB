@@ -1,12 +1,12 @@
 import { Tool, Post, PostType } from '@/types';
-import { readHubData, writeHubData } from './driveStorage';
+import { INITIAL_TOOLS, INITIAL_POSTS } from './initialData';
 
 const STORAGE_KEYS = {
   FAVORITES_PREFIX: 'dle_hub_favorites_',
 };
 
 // -------------------------------------------------------------
-// ツール (Tools) の操作 (GAS一切なし・共有ドライブ直結)
+// ツール (Tools) の操作 (GAS一切なし・API Route経由で共有ドライブ直結)
 // -------------------------------------------------------------
 
 export async function fetchTools(): Promise<Tool[]> {
@@ -19,8 +19,7 @@ export async function fetchTools(): Promise<Tool[]> {
   } catch (e) {
     console.error('Failed to fetch tools:', e);
   }
-  const data = readHubData();
-  return data.tools;
+  return INITIAL_TOOLS;
 }
 
 export async function saveTool(
@@ -99,7 +98,7 @@ export async function toggleFavorite(
 }
 
 // -------------------------------------------------------------
-// 掲示板メモ (Posts) の操作 (GAS一切なし・共有ドライブ直結)
+// 掲示板メモ (Posts) の操作 (GAS一切なし・API Route経由で共有ドライブ直結)
 // -------------------------------------------------------------
 
 export async function fetchPosts(): Promise<Post[]> {
@@ -112,8 +111,7 @@ export async function fetchPosts(): Promise<Post[]> {
   } catch (e) {
     console.error('Failed to fetch posts:', e);
   }
-  const data = readHubData();
-  return data.posts;
+  return INITIAL_POSTS;
 }
 
 export async function createPost(
