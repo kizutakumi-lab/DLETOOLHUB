@@ -14,12 +14,7 @@ export async function fetchToolsFromSheets(): Promise<Tool[] | null> {
       cache: 'no-store',
       redirect: 'follow',
     });
-    const text = await res.text();
-    if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-      console.warn('GAS fetchTools non-JSON response:', text.substring(0, 100));
-      return null;
-    }
-    const data = JSON.parse(text);
+    const data = await res.json();
     return data.tools || null;
   } catch (error) {
     console.error('Failed to fetch tools from Google Sheets:', error);
@@ -35,21 +30,22 @@ export async function saveToolToSheets(
   userEmail: string
 ): Promise<Tool[] | null> {
   try {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      redirect: 'follow',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'saveTool',
-        tool,
-        userEmail,
-      }),
+    const params = new URLSearchParams({
+      action: 'saveTool',
+      id: tool.id || '',
+      name: tool.name || '',
+      category: tool.category || '',
+      color: tool.color || 'blue',
+      url: tool.url || '',
+      description: tool.description || '',
+      sort_order: String(tool.sort_order || 0),
+      userEmail: userEmail || '',
     });
-    const text = await res.text();
-    if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-      return null;
-    }
-    const data = JSON.parse(text);
+    const res = await fetch(`${GAS_URL}?${params.toString()}`, {
+      cache: 'no-store',
+      redirect: 'follow',
+    });
+    const data = await res.json();
     return data.tools || null;
   } catch (error) {
     console.error('Failed to save tool to Google Sheets:', error);
@@ -62,20 +58,15 @@ export async function saveToolToSheets(
  */
 export async function deleteToolFromSheets(id: string): Promise<Tool[] | null> {
   try {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      redirect: 'follow',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'deleteTool',
-        id,
-      }),
+    const params = new URLSearchParams({
+      action: 'deleteTool',
+      id,
     });
-    const text = await res.text();
-    if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-      return null;
-    }
-    const data = JSON.parse(text);
+    const res = await fetch(`${GAS_URL}?${params.toString()}`, {
+      cache: 'no-store',
+      redirect: 'follow',
+    });
+    const data = await res.json();
     return data.tools || null;
   } catch (error) {
     console.error('Failed to delete tool from Google Sheets:', error);
@@ -92,12 +83,7 @@ export async function fetchPostsFromSheets(): Promise<Post[] | null> {
       cache: 'no-store',
       redirect: 'follow',
     });
-    const text = await res.text();
-    if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-      console.warn('GAS fetchPosts non-JSON response:', text.substring(0, 100));
-      return null;
-    }
-    const data = JSON.parse(text);
+    const data = await res.json();
     return data.posts || null;
   } catch (error) {
     console.error('Failed to fetch posts from Google Sheets:', error);
@@ -106,7 +92,7 @@ export async function fetchPostsFromSheets(): Promise<Post[] | null> {
 }
 
 /**
- * Google スプレッドシートに掲示板メモを投稿
+ * Google スプレッドシートに掲示板メモを投稿 (GETパラメータでCORS完全回避)
  */
 export async function createPostToSheets(
   type: PostType,
@@ -115,24 +101,18 @@ export async function createPostToSheets(
   authorEmail: string
 ): Promise<Post[] | null> {
   try {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      redirect: 'follow',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'createPost',
-        type,
-        content,
-        authorName,
-        authorEmail,
-      }),
+    const params = new URLSearchParams({
+      action: 'createPost',
+      type: type || 'その他',
+      content: content || '',
+      authorName: authorName || '社内ユーザー',
+      authorEmail: authorEmail || 'user@dle.jp',
     });
-    const text = await res.text();
-    if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-      console.warn('GAS createPost non-JSON response:', text.substring(0, 100));
-      return null;
-    }
-    const data = JSON.parse(text);
+    const res = await fetch(`${GAS_URL}?${params.toString()}`, {
+      cache: 'no-store',
+      redirect: 'follow',
+    });
+    const data = await res.json();
     return data.posts || null;
   } catch (error) {
     console.error('Failed to create post to Google Sheets:', error);
