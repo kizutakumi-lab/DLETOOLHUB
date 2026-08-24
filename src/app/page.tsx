@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from './providers';
 import { Tool, Post, PostType } from '@/types';
-import { getColorTheme } from '@/lib/colors';
 import {
   fetchTools,
   saveTool,
@@ -25,7 +24,7 @@ import { ToolModal } from '@/components/ToolModal';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import { MemoSection } from '@/components/MemoSection';
 
-import { Plus, LayoutGrid, ListFilter, AlertCircle, ShieldAlert, Folder } from 'lucide-react';
+import { Plus, LayoutGrid, ListFilter, AlertCircle, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
@@ -180,7 +179,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-sky-400 border-t-transparent rounded-full animate-spin" />
           <p className="text-xs text-slate-400 font-medium">DLE TOOL HUB を読み込み中...</p>
         </div>
       </div>
@@ -198,7 +197,7 @@ export default function DashboardPage() {
           </p>
           <button
             onClick={() => router.push('/login')}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2.5 rounded-xl shadow-lg transition-all"
+            className="w-full bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold py-2.5 rounded-xl shadow-lg transition-all"
           >
             ログイン画面へ移動
           </button>
@@ -228,11 +227,11 @@ export default function DashboardPage() {
 
         {/* ツール一覧セクション */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between gap-4 flex-wrap bg-slate-900/60 border border-slate-800/80 p-3 rounded-2xl">
+          <div className="flex items-center justify-between gap-4 flex-wrap bg-slate-900/80 border border-sky-900/30 p-3 rounded-2xl shadow-sm">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold text-slate-100 tracking-tight flex items-center gap-2">
                 すべてのツール
-                <span className="text-xs text-slate-500 font-mono bg-slate-950 px-2 py-0.5 rounded-md border border-slate-800">
+                <span className="text-xs text-sky-400 font-mono bg-sky-950/60 px-2 py-0.5 rounded-md border border-sky-800/40">
                   {filteredTools.length} 件
                 </span>
               </h2>
@@ -246,7 +245,7 @@ export default function DashboardPage() {
                   onClick={() => setViewMode('grid')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg transition-all ${
                     viewMode === 'grid'
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-sky-600 text-white shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                   title="横5列グリッド表示"
@@ -258,7 +257,7 @@ export default function DashboardPage() {
                   onClick={() => setViewMode('category')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg transition-all ${
                     viewMode === 'category'
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-sky-600 text-white shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                   title="カテゴリ別スリムリスト表示"
@@ -274,7 +273,7 @@ export default function DashboardPage() {
                   setEditingTool(null);
                   setIsModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-600/20 transition-all active:scale-95"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs font-semibold rounded-xl shadow-md shadow-sky-600/20 transition-all active:scale-95"
               >
                 <Plus className="w-4 h-4" />
                 ツールを追加
@@ -282,7 +281,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ツール一覧表示 (グリッド表示 vs 単色さわやかカテゴリ別表示) */}
+          {/* ツール一覧表示 (グリッド表示 vs さわやかポップ水色カテゴリ別表示) */}
           {filteredTools.length === 0 ? (
             <div className="bg-slate-900/30 border border-slate-800/50 rounded-2xl p-12 text-center text-slate-500 space-y-2">
               <AlertCircle className="w-8 h-8 text-slate-600 mx-auto mb-2" />
@@ -316,31 +315,27 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            /* 2. ポップ＆さわやかな単色カテゴリ別表示 (Notion/Linear風のクリーンフラットデザイン) */
+            /* 2. さわやかな水色ポップカテゴリ別表示 (緑丸ドットなし・明るめ水色タイトル) */
             <div className="space-y-4">
               {groupedTools.map((group) => {
-                const sampleTool = group.tools[0];
-                const theme = getColorTheme(sampleTool?.color, group.category);
-
                 return (
                   <div
                     key={group.category}
-                    className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 space-y-3 backdrop-blur-sm shadow-sm hover:border-slate-700/80 transition-all"
+                    className="bg-sky-950/20 border border-sky-500/30 rounded-2xl p-4 space-y-3 backdrop-blur-sm shadow-md hover:border-sky-500/50 transition-all"
                   >
-                    {/* クリーンでさわやかなカテゴリヘッダー */}
-                    <div className="flex items-center justify-between border-b border-slate-800/60 pb-2.5">
+                    {/* さわやか水色のカテゴリヘッダー (緑のドットは完全削除) */}
+                    <div className="flex items-center justify-between border-b border-sky-500/20 pb-2.5">
                       <div className="flex items-center gap-2.5">
-                        <div className={`w-3 h-3 rounded-md ${theme.pillBg} shadow-sm`} />
-                        <h3 className="text-xs font-bold text-slate-100 tracking-wide uppercase">
+                        <h3 className="text-sm font-bold text-sky-300 tracking-wide">
                           {group.category}
                         </h3>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${theme.badge}`}>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-200 border border-sky-400/30">
                           {group.tools.length} 件
                         </span>
                       </div>
                     </div>
 
-                    {/* 内側のスリム行 */}
+                    {/* スリム行 */}
                     <div className="space-y-2">
                       {group.tools.map((tool) => (
                         <ToolListItem
