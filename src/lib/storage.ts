@@ -1,12 +1,12 @@
 import { Tool, Post, PostType } from '@/types';
-import { INITIAL_TOOLS, INITIAL_POSTS } from './initialData';
+import { readHubData, writeHubData } from './driveStorage';
 
 const STORAGE_KEYS = {
   FAVORITES_PREFIX: 'dle_hub_favorites_',
 };
 
 // -------------------------------------------------------------
-// ツール (Tools) の即時保存・同期操作
+// ツール (Tools) の操作 (GAS一切なし・共有ドライブ直結)
 // -------------------------------------------------------------
 
 export async function fetchTools(): Promise<Tool[]> {
@@ -14,14 +14,13 @@ export async function fetchTools(): Promise<Tool[]> {
     const res = await fetch('/api/tools', { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
-      }
+      if (Array.isArray(data)) return data;
     }
   } catch (e) {
     console.error('Failed to fetch tools:', e);
   }
-  return INITIAL_TOOLS;
+  const data = readHubData();
+  return data.tools;
 }
 
 export async function saveTool(
@@ -100,7 +99,7 @@ export async function toggleFavorite(
 }
 
 // -------------------------------------------------------------
-// 掲示板メモ (Posts) の即時保存・同期操作
+// 掲示板メモ (Posts) の操作 (GAS一切なし・共有ドライブ直結)
 // -------------------------------------------------------------
 
 export async function fetchPosts(): Promise<Post[]> {
@@ -108,14 +107,13 @@ export async function fetchPosts(): Promise<Post[]> {
     const res = await fetch('/api/posts', { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
-      }
+      if (Array.isArray(data)) return data;
     }
   } catch (e) {
     console.error('Failed to fetch posts:', e);
   }
-  return INITIAL_POSTS;
+  const data = readHubData();
+  return data.posts;
 }
 
 export async function createPost(
