@@ -1,13 +1,35 @@
-import { Tool, Post, Favorite, PostType } from '@/types';
-import { INITIAL_TOOLS, INITIAL_POSTS } from './initialData';
+import { Tool, Post, PostType } from '@/types';
+import { INITIAL_TOOLS } from './initialData';
 import { supabase, isSupabaseConfigured } from './supabase';
+import {
+  isGoogleSheetsConfigured,
+  fetchToolsFromSheets,
+  saveToolToSheets,
+  deleteToolFromSheets,
+  fetchPostsFromSheets,
+  createPostToSheets,
+} from './googleSheets';
 
-const TOOLS_KEY = 'dle_portal_tools_v1';
-const POSTS_KEY = 'dle_portal_posts_v1';
-const FAVORITES_KEY = 'dle_portal_favorites_v1';
+const STORAGE_KEYS = {
+  TOOLS: 'dle_hub_tools',
+  FAVORITES_PREFIX: 'dle_hub_favorites_',
+  POSTS: 'dle_hub_posts',
+};
 
-// --- Tools ---
+// -------------------------------------------------------------
+// ツール (Tools) の操作
+// -------------------------------------------------------------
+
 export async function fetchTools(): Promise<Tool[]> {
+  // 1. Google スプレッドシート連携が設定されている場合
+  if (isGoogleSheetsConfigured) {
+    const sheetTools = await fetchToolsFromSheets();
+    if (sheetTools && sheetTools.length > 0) {
+      return sheetTools;
+    }
+  }
+
+  // 2. Supabase 連携が設定されている場合
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -20,50 +42,36 @@ export async function fetchTools(): Promise<Tool[]> {
         return data as Tool[];
       }
     } catch (e) {
-      console.warn('Supabase fetch error, fallback to local:', e);
+      console.warn('Supabase fetch failed, falling back to LocalStorage:', e);
     }
   }
 
-  // LocalStorage / Memory Fallback
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(TOOLS_KEY);
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch (e) {
-        // pass
-      }
-    }
-    // 初期データ保存
-    localStorage.setItem(TOOLS_KEY, JSON.stringify(INITIAL_TOOLS));
+  // 3. LocalStorage フォールバック
+  if (typeof window === 'undefined') return INITIAL_TOOLS;
+  const localData = localStorage.getItem(STORAGE_KEYS.TOOLS);
+  if (!localData) {
+    localStorage.setItem(STORAGE_KEYS.TOOLS, JSON.stringify(INITIAL_TOOLS));
+    return INITIAL_TOOLS;
   }
-  return INITIAL_TOOLS;
+
+  try {
+    return JSON.parse(localData);
+  } catch {
+    return INITIAL_TOOLS;
+  }
 }
 
-export async function saveTool(toolData: Omit<Tool, 'id'> & { id?: string }, userEmail?: string): Promise<Tool[]> {
-  const currentTools = await fetchTools();
-
-  let updatedTools: Tool[];
-  if (toolData.id) {
-    // 編集
-    updatedTools = currentTools.map((t) =>
-      t.id === toolData.id ? { ...t, ...toolData, updated_at: new Date().toISOString() } : t
-    );
-  } else {
-    // 新規作成
-    const newTool: Tool = {
-      id: `tool-${Date.now()}`,
-      name: toolData.name,
-      category: toolData.category,
-      description: toolData.description,
-      url: toolData.url,
-      sort_order: toolData.sort_order || currentTools.length + 1,
-      created_at: new Date().toISOString(),
-      created_by: userEmail,
-    };
-    updatedTools = [...currentTools, newTool];
+export async function saveTool(
+  toolData: Omit<Tool, 'id'> & { id?: string },
+  userEmail: string
+): Promise<Tool[]> {
+  // 1. Google スプレッドシート連携
+  if (isGoogleSheetsConfigured) {
+    const updated = await saveToolToSheets(toolData, userEmail);
+    if (updated) return updated;
   }
 
+  // 2. Supabase 連携
   if (isSupabaseConfigured && supabase) {
     try {
       if (toolData.id) {
@@ -72,155 +80,166 @@ export async function saveTool(toolData: Omit<Tool, 'id'> & { id?: string }, use
           .update({
             name: toolData.name,
             category: toolData.category,
-            description: toolData.description,
+            color: toolData.color || 'blue',
             url: toolData.url,
-            sort_order: toolData.sort_order,
+            description: toolData.description,
+            sort_order: toolData.sort_order ?? 0,
             updated_at: new Date().toISOString(),
           })
           .eq('id', toolData.id);
       } else {
-        await supabase.from('tools').insert([
-          {
-            name: toolData.name,
-            category: toolData.category,
-            description: toolData.description,
-            url: toolData.url,
-            sort_order: toolData.sort_order || currentTools.length + 1,
-            created_by: userEmail,
-          },
-        ]);
+        await supabase.from('tools').insert({
+          name: toolData.name,
+          category: toolData.category,
+          color: toolData.color || 'blue',
+          url: toolData.url,
+          description: toolData.description,
+          sort_order: toolData.sort_order ?? 0,
+          created_by: userEmail,
+        });
       }
+      return await fetchTools();
     } catch (e) {
-      console.warn('Supabase save error:', e);
+      console.warn('Supabase save failed:', e);
     }
   }
 
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(TOOLS_KEY, JSON.stringify(updatedTools));
-  }
-  return updatedTools;
-}
-
-export async function deleteTool(toolId: string): Promise<Tool[]> {
+  // 3. LocalStorage フォールバック
   const currentTools = await fetchTools();
-  const updatedTools = currentTools.filter((t) => t.id !== toolId);
+  let updatedTools: Tool[];
 
-  if (isSupabaseConfigured && supabase) {
-    try {
-      await supabase.from('tools').delete().eq('id', toolId);
-    } catch (e) {
-      console.warn('Supabase delete error:', e);
-    }
+  if (toolData.id) {
+    updatedTools = currentTools.map((t) =>
+      t.id === toolData.id
+        ? {
+            ...t,
+            ...toolData,
+            updated_at: new Date().toISOString(),
+          }
+        : t
+    );
+  } else {
+    const newTool: Tool = {
+      id: `tool-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      name: toolData.name,
+      category: toolData.category,
+      color: toolData.color || 'blue',
+      url: toolData.url,
+      description: toolData.description,
+      sort_order: toolData.sort_order ?? currentTools.length + 1,
+      created_by: userEmail,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    updatedTools = [...currentTools, newTool];
   }
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem(TOOLS_KEY, JSON.stringify(updatedTools));
+    localStorage.setItem(STORAGE_KEYS.TOOLS, JSON.stringify(updatedTools));
   }
   return updatedTools;
 }
 
-export async function reorderTools(tools: Tool[]): Promise<Tool[]> {
-  const updated = tools.map((t, idx) => ({ ...t, sort_order: idx + 1 }));
+export async function deleteTool(id: string): Promise<Tool[]> {
+  // 1. Google スプレッドシート連携
+  if (isGoogleSheetsConfigured) {
+    const updated = await deleteToolFromSheets(id);
+    if (updated) return updated;
+  }
 
+  // 2. Supabase 連携
   if (isSupabaseConfigured && supabase) {
     try {
-      for (const t of updated) {
-        await supabase.from('tools').update({ sort_order: t.sort_order }).eq('id', t.id);
-      }
+      await supabase.from('tools').delete().eq('id', id);
+      return await fetchTools();
     } catch (e) {
-      console.warn('Supabase reorder error:', e);
+      console.warn('Supabase delete failed:', e);
     }
   }
 
+  // 3. LocalStorage フォールバック
+  const currentTools = await fetchTools();
+  const updatedTools = currentTools.filter((t) => t.id !== id);
+
   if (typeof window !== 'undefined') {
-    localStorage.setItem(TOOLS_KEY, JSON.stringify(updated));
+    localStorage.setItem(STORAGE_KEYS.TOOLS, JSON.stringify(updatedTools));
   }
-  return updated;
+  return updatedTools;
 }
 
-// --- Favorites ---
+export async function reorderTools(newTools: Tool[]): Promise<Tool[]> {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.TOOLS, JSON.stringify(newTools));
+  }
+  return newTools;
+}
+
+// -------------------------------------------------------------
+// お気に入り (Favorites) の操作
+// -------------------------------------------------------------
+
 export async function fetchFavorites(userEmail: string): Promise<string[]> {
-  if (!userEmail) return [];
-
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('favorites')
-        .select('tool_id')
-        .eq('user_email', userEmail);
-
-      if (!error && data) {
-        return data.map((d) => d.tool_id);
-      }
-    } catch (e) {
-      console.warn('Supabase favorites fetch error:', e);
-    }
+  if (typeof window === 'undefined') return [];
+  const key = `${STORAGE_KEYS.FAVORITES_PREFIX}${userEmail.toLowerCase()}`;
+  const data = localStorage.getItem(key);
+  if (!data) return [];
+  try {
+    return JSON.parse(data);
+  } catch {
+    return [];
   }
-
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(`${FAVORITES_KEY}_${userEmail}`);
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch (e) {}
-    }
-  }
-  return [];
 }
 
-export async function toggleFavorite(userEmail: string, toolId: string): Promise<string[]> {
-  const currentFavs = await fetchFavorites(userEmail);
-  let updated: string[];
-
-  if (currentFavs.includes(toolId)) {
-    updated = currentFavs.filter((id) => id !== toolId);
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('favorites').delete().match({ user_email: userEmail, tool_id: toolId });
-      } catch (e) {}
-    }
-  } else {
-    updated = [...currentFavs, toolId];
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('favorites').insert([{ user_email: userEmail, tool_id: toolId }]);
-      } catch (e) {}
-    }
-  }
+export async function toggleFavorite(
+  userEmail: string,
+  toolId: string
+): Promise<string[]> {
+  const current = await fetchFavorites(userEmail);
+  const exists = current.includes(toolId);
+  const updated = exists
+    ? current.filter((id) => id !== toolId)
+    : [...current, toolId];
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem(`${FAVORITES_KEY}_${userEmail}`, JSON.stringify(updated));
+    const key = `${STORAGE_KEYS.FAVORITES_PREFIX}${userEmail.toLowerCase()}`;
+    localStorage.setItem(key, JSON.stringify(updated));
   }
+
   return updated;
 }
 
-// --- Posts (掲示板メモ) ---
+// -------------------------------------------------------------
+// 掲示板メモ (Posts) の操作
+// -------------------------------------------------------------
+
+const initialPosts: Post[] = [
+  {
+    id: 'post-1',
+    type: 'notice',
+    content: 'DLE TOOL HUB へようこそ！社内ツール一覧と共有メモ欄が利用可能です。',
+    author_name: '管理者',
+    author_email: 'admin@dle.jp',
+    created_at: new Date().toISOString(),
+  },
+];
+
 export async function fetchPosts(): Promise<Post[]> {
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (!error && data && data.length > 0) {
-        return data as Post[];
-      }
-    } catch (e) {
-      console.warn('Supabase posts fetch error:', e);
-    }
+  if (isGoogleSheetsConfigured) {
+    const sheetPosts = await fetchPostsFromSheets();
+    if (sheetPosts) return sheetPosts;
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(POSTS_KEY);
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch (e) {}
-    }
-    localStorage.setItem(POSTS_KEY, JSON.stringify(INITIAL_POSTS));
+  if (typeof window === 'undefined') return initialPosts;
+  const data = localStorage.getItem(STORAGE_KEYS.POSTS);
+  if (!data) {
+    localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(initialPosts));
+    return initialPosts;
   }
-  return INITIAL_POSTS;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return initialPosts;
+  }
 }
 
 export async function createPost(
@@ -229,7 +248,12 @@ export async function createPost(
   authorName: string,
   authorEmail: string
 ): Promise<Post[]> {
-  const currentPosts = await fetchPosts();
+  if (isGoogleSheetsConfigured) {
+    const updated = await createPostToSheets(type, content, authorName, authorEmail);
+    if (updated) return updated;
+  }
+
+  const current = await fetchPosts();
   const newPost: Post = {
     id: `post-${Date.now()}`,
     type,
@@ -238,63 +262,36 @@ export async function createPost(
     author_email: authorEmail,
     created_at: new Date().toISOString(),
   };
-
-  const updated = [newPost, ...currentPosts];
-
-  if (isSupabaseConfigured && supabase) {
-    try {
-      await supabase.from('posts').insert([
-        {
-          type,
-          content,
-          author_name: authorName,
-          author_email: authorEmail,
-        },
-      ]);
-    } catch (e) {
-      console.warn('Supabase post create error:', e);
-    }
-  }
+  const updated = [newPost, ...current];
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem(POSTS_KEY, JSON.stringify(updated));
+    localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(updated));
   }
   return updated;
 }
 
-export async function updatePost(id: string, content: string, type: PostType): Promise<Post[]> {
-  const currentPosts = await fetchPosts();
-  const updated = currentPosts.map((p) =>
-    p.id === id ? { ...p, content, type, updated_at: new Date().toISOString() } : p
+export async function updatePost(
+  id: string,
+  content: string,
+  type: PostType
+): Promise<Post[]> {
+  const current = await fetchPosts();
+  const updated = current.map((p) =>
+    p.id === id ? { ...p, content, type } : p
   );
 
-  if (isSupabaseConfigured && supabase) {
-    try {
-      await supabase
-        .from('posts')
-        .update({ content, type, updated_at: new Date().toISOString() })
-        .eq('id', id);
-    } catch (e) {}
-  }
-
   if (typeof window !== 'undefined') {
-    localStorage.setItem(POSTS_KEY, JSON.stringify(updated));
+    localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(updated));
   }
   return updated;
 }
 
 export async function deletePost(id: string): Promise<Post[]> {
-  const currentPosts = await fetchPosts();
-  const updated = currentPosts.filter((p) => p.id !== id);
-
-  if (isSupabaseConfigured && supabase) {
-    try {
-      await supabase.from('posts').delete().eq('id', id);
-    } catch (e) {}
-  }
+  const current = await fetchPosts();
+  const updated = current.filter((p) => p.id !== id);
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem(POSTS_KEY, JSON.stringify(updated));
+    localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(updated));
   }
   return updated;
 }
