@@ -57,7 +57,7 @@ export function ToolModal({
       setDescription('');
       setSortOrder(0);
     }
-  }, [editingTool, isOpen, existingCategories]);
+  }, [editingTool, isOpen]);
 
   if (!isOpen) return null;
 
@@ -116,7 +116,7 @@ export function ToolModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="例: TouchOnTime, 楽楽清算"
+              placeholder="例: Workportal, Social Insight"
               required
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
             />
@@ -130,7 +130,7 @@ export function ToolModal({
                 用途カテゴリ <span className="text-rose-400">*</span>
               </span>
               <span className="text-[10px] text-slate-400 font-normal">
-                直接入力・修正が可能です
+                直接入力・既存からの選択が可能です
               </span>
             </label>
 
@@ -143,7 +143,6 @@ export function ToolModal({
                     type="button"
                     onClick={() => {
                       setCategory(cat);
-                      setColor(getColorTheme(undefined, cat).name);
                     }}
                     className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
                       category === cat
@@ -161,17 +160,17 @@ export function ToolModal({
               type="text"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              placeholder="カテゴリ名を入力 (例: 勤怠管理, 営業ツール)"
+              placeholder="カテゴリ名を入力 (例: SP業務ツール)"
               required
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
 
-          {/* カテゴリカラー選択 (10色丸パレット完全表示) */}
+          {/* カテゴリカラー選択 */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
               <Palette className="w-3.5 h-3.5 text-blue-400" />
-              テーマカラーを選択 (カード・カテゴリ別の配色)
+              テーマカラーを選択
             </label>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               {COLOR_OPTIONS.map((colKey) => {
@@ -217,12 +216,12 @@ export function ToolModal({
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
               <FileText className="w-3.5 h-3.5 text-blue-400" />
-              説明文 (新入社員向けの使い道・用途説明)
+              説明文
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="例: 出退勤の打刻や勤務時間の確認を行うツールです。"
+              placeholder="例: 社内業務に利用する各種機能へアクセスするための社内ツール。"
               rows={3}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors resize-none"
             />
