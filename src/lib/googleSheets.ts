@@ -18,6 +18,7 @@ export async function fetchToolsFromSheets(): Promise<Tool[] | null> {
   try {
     const res = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getTools`, {
       cache: 'no-store',
+      redirect: 'follow',
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -40,7 +41,8 @@ export async function saveToolToSheets(
   try {
     const res = await fetch(GOOGLE_SHEETS_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         action: 'saveTool',
         tool,
@@ -65,7 +67,8 @@ export async function deleteToolFromSheets(id: string): Promise<Tool[] | null> {
   try {
     const res = await fetch(GOOGLE_SHEETS_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         action: 'deleteTool',
         id,
@@ -89,6 +92,7 @@ export async function fetchPostsFromSheets(): Promise<Post[] | null> {
   try {
     const res = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getPosts`, {
       cache: 'no-store',
+      redirect: 'follow',
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -113,7 +117,8 @@ export async function createPostToSheets(
   try {
     const res = await fetch(GOOGLE_SHEETS_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         action: 'createPost',
         type,
