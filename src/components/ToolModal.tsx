@@ -167,7 +167,7 @@ export function ToolModal({
             />
           </div>
 
-          {/* カテゴリカラー選択 (新規機能) */}
+          {/* カテゴリカラー選択 (10色丸パレット完全表示) */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
               <Palette className="w-3.5 h-3.5 text-blue-400" />
@@ -182,12 +182,13 @@ export function ToolModal({
                     key={colKey}
                     type="button"
                     onClick={() => setColor(colKey)}
-                    className={`w-7 h-7 rounded-full ${theme.pickerBg} flex items-center justify-center transition-transform ${
-                      isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110' : 'hover:scale-105 opacity-80 hover:opacity-100'
+                    style={{ backgroundColor: theme.hex }}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform ${
+                      isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110 shadow-lg' : 'hover:scale-105 opacity-85 hover:opacity-100'
                     }`}
                     title={theme.label}
                   >
-                    {isSelected && <Check className="w-4 h-4 text-white drop-shadow" />}
+                    {isSelected && <Check className="w-4 h-4 text-white drop-shadow-md" />}
                   </button>
                 );
               })}
