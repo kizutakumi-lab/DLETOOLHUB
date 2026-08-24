@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from './providers';
 import { Tool, Post, PostType } from '@/types';
+import { getColorTheme } from '@/lib/colors';
 import {
   fetchTools,
   saveTool,
@@ -24,7 +25,7 @@ import { ToolModal } from '@/components/ToolModal';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import { MemoSection } from '@/components/MemoSection';
 
-import { Plus, LayoutGrid, ListFilter, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Plus, LayoutGrid, ListFilter, AlertCircle, ShieldAlert, Folder } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
@@ -281,7 +282,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ツール一覧表示 (グリッド表示 vs ポップ＆明るめのカテゴリ別表示) */}
+          {/* ツール一覧表示 (グリッド表示 vs 単色さわやかカテゴリ別表示) */}
           {filteredTools.length === 0 ? (
             <div className="bg-slate-900/30 border border-slate-800/50 rounded-2xl p-12 text-center text-slate-500 space-y-2">
               <AlertCircle className="w-8 h-8 text-slate-600 mx-auto mb-2" />
@@ -315,28 +316,31 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            /* 2. ポップ＆モダンな明るめカテゴリ別表示 */
+            /* 2. ポップ＆さわやかな単色カテゴリ別表示 (Notion/Linear風のクリーンフラットデザイン) */
             <div className="space-y-4">
               {groupedTools.map((group) => {
+                const sampleTool = group.tools[0];
+                const theme = getColorTheme(sampleTool?.color, group.category);
+
                 return (
                   <div
                     key={group.category}
-                    className="bg-gradient-to-r from-emerald-950/40 via-slate-900/80 to-blue-950/30 border border-emerald-500/30 rounded-2xl p-4 space-y-3 backdrop-blur-sm shadow-md"
+                    className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 space-y-3 backdrop-blur-sm shadow-sm hover:border-slate-700/80 transition-all"
                   >
-                    {/* ポップで明るめのカテゴリヘッダー */}
-                    <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2.5">
+                    {/* クリーンでさわやかなカテゴリヘッダー */}
+                    <div className="flex items-center justify-between border-b border-slate-800/60 pb-2.5">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-400 shadow-sm shadow-blue-400/50" />
-                        <h3 className="text-xs font-extrabold text-blue-400 tracking-wider uppercase">
+                        <div className={`w-3 h-3 rounded-md ${theme.pillBg} shadow-sm`} />
+                        <h3 className="text-xs font-bold text-slate-100 tracking-wide uppercase">
                           {group.category}
                         </h3>
-                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-400/30 shadow-sm">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${theme.badge}`}>
                           {group.tools.length} 件
                         </span>
                       </div>
                     </div>
 
-                    {/* スリム行 */}
+                    {/* 内側のスリム行 */}
                     <div className="space-y-2">
                       {group.tools.map((tool) => (
                         <ToolListItem
