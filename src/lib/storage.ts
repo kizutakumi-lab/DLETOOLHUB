@@ -21,7 +21,22 @@ const STORAGE_KEYS = {
 // -------------------------------------------------------------
 
 export async function fetchTools(): Promise<Tool[]> {
-  // 1. Google スプレッドシート連携が設定されている場合
+  // Clientサイドの場合は /api/tools 経由で取得（CORS回避）
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/tools', { cache: 'no-store' });
+      if (res.ok) {
+        const tools = await res.json();
+        if (Array.isArray(tools) && tools.length > 0) {
+          return tools;
+        }
+      }
+    } catch (e) {
+      console.warn('API tools fetch error, trying direct fallback:', e);
+    }
+  }
+
+  // Google スプレッドシート連携が設定されている場合 (Serverサイド)
   if (isGoogleSheetsConfigured) {
     const sheetTools = await fetchToolsFromSheets();
     if (sheetTools && sheetTools.length > 0) {
@@ -29,7 +44,7 @@ export async function fetchTools(): Promise<Tool[]> {
     }
   }
 
-  // 2. Supabase 連携が設定されている場合
+  // Supabase 連携が設定されている場合
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -42,11 +57,11 @@ export async function fetchTools(): Promise<Tool[]> {
         return data as Tool[];
       }
     } catch (e) {
-      console.warn('Supabase fetch failed, falling back to LocalStorage:', e);
+      console.warn('Supabase fetch failed:', e);
     }
   }
 
-  // 3. LocalStorage フォールバック
+  // LocalStorage フォールバック
   if (typeof window === 'undefined') return INITIAL_TOOLS;
   const localData = localStorage.getItem(STORAGE_KEYS.TOOLS);
   if (!localData) {
@@ -65,13 +80,13 @@ export async function saveTool(
   toolData: Omit<Tool, 'id'> & { id?: string },
   userEmail: string
 ): Promise<Tool[]> {
-  // 1. Google スプレッドシート連携
+  // Google スプレッドシート連携
   if (isGoogleSheetsConfigured) {
     const updated = await saveToolToSheets(toolData, userEmail);
     if (updated) return updated;
   }
 
-  // 2. Supabase 連携
+  // Supabase 連携
   if (isSupabaseConfigured && supabase) {
     try {
       if (toolData.id) {
@@ -104,7 +119,7 @@ export async function saveTool(
     }
   }
 
-  // 3. LocalStorage フォールバック
+  // LocalStorage フォールバック
   const currentTools = await fetchTools();
   let updatedTools: Tool[];
 
@@ -141,13 +156,11 @@ export async function saveTool(
 }
 
 export async function deleteTool(id: string): Promise<Tool[]> {
-  // 1. Google スプレッドシート連携
   if (isGoogleSheetsConfigured) {
     const updated = await deleteToolFromSheets(id);
     if (updated) return updated;
   }
 
-  // 2. Supabase 連携
   if (isSupabaseConfigured && supabase) {
     try {
       await supabase.from('tools').delete().eq('id', id);
@@ -157,7 +170,6 @@ export async function deleteTool(id: string): Promise<Tool[]> {
     }
   }
 
-  // 3. LocalStorage フォールバック
   const currentTools = await fetchTools();
   const updatedTools = currentTools.filter((t) => t.id !== id);
 
@@ -224,6 +236,21 @@ const initialPosts: Post[] = [
 ];
 
 export async function fetchPosts(): Promise<Post[]> {
+  // Clientサイドの場合は /api/posts 経由で取得（CORS回避）
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/posts', { cache: 'no-store' });
+      if (res.ok) {
+        const posts = await res.json();
+        if (Array.isArray(posts) && posts.length > 0) {
+          return posts;
+        }
+      }
+    } catch (e) {
+      console.warn('API posts fetch error:', e);
+    }
+  }
+
   if (isGoogleSheetsConfigured) {
     const sheetPosts = await fetchPostsFromSheets();
     if (sheetPosts) return sheetPosts;
@@ -248,6 +275,23 @@ export async function createPost(
   authorName: string,
   authorEmail: string
 ): Promise<Post[]> {
+  // Clientサイドの場合は /api/posts 経由でPOST（CORS回避＆サーバーからGAS送信）
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, content }),
+      });
+      if (res.ok) {
+        const posts = await res.json();
+        if (Array.isArray(posts)) return posts;
+      }
+    } catch (e) {
+      console.warn('API createPost error:', e);
+    }
+  }
+
   if (isGoogleSheetsConfigured) {
     const updated = await createPostToSheets(type, content, authorName, authorEmail);
     if (updated) return updated;
