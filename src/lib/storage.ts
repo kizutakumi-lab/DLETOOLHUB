@@ -1,5 +1,4 @@
 import { Tool, Post, PostType } from '@/types';
-import { INITIAL_TOOLS } from './initialData';
 import {
   fetchToolsFromSheets,
   saveToolToSheets,
@@ -9,40 +8,26 @@ import {
 } from './googleSheets';
 
 const STORAGE_KEYS = {
-  TOOLS: 'dle_hub_tools',
   FAVORITES_PREFIX: 'dle_hub_favorites_',
-  POSTS: 'dle_hub_posts',
 };
 
 // -------------------------------------------------------------
-// ツール (Tools) の操作
+// ツール (Tools) の完全動的操作 (スプレッドシートのみ)
 // -------------------------------------------------------------
 
 export async function fetchTools(): Promise<Tool[]> {
-  const sheetTools = await fetchToolsFromSheets();
-  if (sheetTools && sheetTools.length > 0) {
-    return sheetTools;
-  }
-  return INITIAL_TOOLS;
+  return await fetchToolsFromSheets();
 }
 
 export async function saveTool(
   toolData: Omit<Tool, 'id'> & { id?: string },
   userEmail: string
 ): Promise<Tool[]> {
-  const updated = await saveToolToSheets(toolData, userEmail);
-  if (updated && updated.length > 0) {
-    return updated;
-  }
-  return fetchTools();
+  return await saveToolToSheets(toolData, userEmail);
 }
 
 export async function deleteTool(id: string): Promise<Tool[]> {
-  const updated = await deleteToolFromSheets(id);
-  if (updated && updated.length > 0) {
-    return updated;
-  }
-  return fetchTools();
+  return await deleteToolFromSheets(id);
 }
 
 export async function reorderTools(newTools: Tool[]): Promise<Tool[]> {
@@ -84,25 +69,11 @@ export async function toggleFavorite(
 }
 
 // -------------------------------------------------------------
-// 掲示板メモ (Posts) の操作
+// 掲示板メモ (Posts) の完全動的操作 (スプレッドシートのみ)
 // -------------------------------------------------------------
 
 export async function fetchPosts(): Promise<Post[]> {
-  const sheetPosts = await fetchPostsFromSheets();
-  if (sheetPosts && sheetPosts.length > 0) {
-    return sheetPosts;
-  }
-
-  return [
-    {
-      id: 'post-1',
-      type: '改修報告',
-      content: 'DLE社内ツールポータルをリリースしました！ツール追加のご要望は本メモ欄までお願いします。',
-      author_name: 'ポータル管理者',
-      author_email: 'admin@dle.jp',
-      created_at: new Date().toISOString(),
-    },
-  ];
+  return await fetchPostsFromSheets();
 }
 
 export async function createPost(
@@ -111,11 +82,7 @@ export async function createPost(
   authorName: string,
   authorEmail: string
 ): Promise<Post[]> {
-  const updated = await createPostToSheets(type, content, authorName, authorEmail);
-  if (updated && updated.length > 0) {
-    return updated;
-  }
-  return fetchPosts();
+  return await createPostToSheets(type, content, authorName, authorEmail);
 }
 
 export async function updatePost(
@@ -123,9 +90,9 @@ export async function updatePost(
   content: string,
   type: PostType
 ): Promise<Post[]> {
-  return fetchPosts();
+  return await fetchPostsFromSheets();
 }
 
 export async function deletePost(id: string): Promise<Post[]> {
-  return fetchPosts();
+  return await fetchPostsFromSheets();
 }

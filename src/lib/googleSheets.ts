@@ -6,29 +6,30 @@ const GAS_URL =
 export const isGoogleSheetsConfigured = true;
 
 /**
- * Google スプレッドシートからツール一覧を取得
+ * Google スプレッドシートからツール一覧を動的取得
  */
-export async function fetchToolsFromSheets(): Promise<Tool[] | null> {
+export async function fetchToolsFromSheets(): Promise<Tool[]> {
   try {
     const res = await fetch(`${GAS_URL}?action=getTools`, {
       cache: 'no-store',
       redirect: 'follow',
     });
-    const data = await res.json();
-    return data.tools || null;
+    const text = await res.text();
+    const data = JSON.parse(text);
+    return Array.isArray(data.tools) ? data.tools : [];
   } catch (error) {
     console.error('Failed to fetch tools from Google Sheets:', error);
-    return null;
+    return [];
   }
 }
 
 /**
- * Google スプレッドシートにツールを保存 (追加・更新)
+ * Google スプレッドシートにツールを保存 (追加・更新) して最新の全ツール配列を取得
  */
 export async function saveToolToSheets(
   tool: Omit<Tool, 'id'> & { id?: string },
   userEmail: string
-): Promise<Tool[] | null> {
+): Promise<Tool[]> {
   try {
     const params = new URLSearchParams({
       action: 'saveTool',
@@ -45,18 +46,19 @@ export async function saveToolToSheets(
       cache: 'no-store',
       redirect: 'follow',
     });
-    const data = await res.json();
-    return data.tools || null;
+    const text = await res.text();
+    const data = JSON.parse(text);
+    return Array.isArray(data.tools) ? data.tools : [];
   } catch (error) {
     console.error('Failed to save tool to Google Sheets:', error);
-    return null;
+    return await fetchToolsFromSheets();
   }
 }
 
 /**
- * Google スプレッドシートからツールを削除
+ * Google スプレッドシートからツールを削除して最新の全ツール配列を取得
  */
-export async function deleteToolFromSheets(id: string): Promise<Tool[] | null> {
+export async function deleteToolFromSheets(id: string): Promise<Tool[]> {
   try {
     const params = new URLSearchParams({
       action: 'deleteTool',
@@ -66,40 +68,42 @@ export async function deleteToolFromSheets(id: string): Promise<Tool[] | null> {
       cache: 'no-store',
       redirect: 'follow',
     });
-    const data = await res.json();
-    return data.tools || null;
+    const text = await res.text();
+    const data = JSON.parse(text);
+    return Array.isArray(data.tools) ? data.tools : [];
   } catch (error) {
     console.error('Failed to delete tool from Google Sheets:', error);
-    return null;
+    return await fetchToolsFromSheets();
   }
 }
 
 /**
- * Google スプレッドシートから掲示板メモ一覧を取得
+ * Google スプレッドシートから掲示板メモ一覧を動的取得
  */
-export async function fetchPostsFromSheets(): Promise<Post[] | null> {
+export async function fetchPostsFromSheets(): Promise<Post[]> {
   try {
     const res = await fetch(`${GAS_URL}?action=getPosts`, {
       cache: 'no-store',
       redirect: 'follow',
     });
-    const data = await res.json();
-    return data.posts || null;
+    const text = await res.text();
+    const data = JSON.parse(text);
+    return Array.isArray(data.posts) ? data.posts : [];
   } catch (error) {
     console.error('Failed to fetch posts from Google Sheets:', error);
-    return null;
+    return [];
   }
 }
 
 /**
- * Google スプレッドシートに掲示板メモを投稿 (GETパラメータでCORS完全回避)
+ * Google スプレッドシートに掲示板メモを投稿して最新の全メモ配列を取得
  */
 export async function createPostToSheets(
   type: PostType,
   content: string,
   authorName: string,
   authorEmail: string
-): Promise<Post[] | null> {
+): Promise<Post[]> {
   try {
     const params = new URLSearchParams({
       action: 'createPost',
@@ -112,10 +116,11 @@ export async function createPostToSheets(
       cache: 'no-store',
       redirect: 'follow',
     });
-    const data = await res.json();
-    return data.posts || null;
+    const text = await res.text();
+    const data = JSON.parse(text);
+    return Array.isArray(data.posts) ? data.posts : [];
   } catch (error) {
     console.error('Failed to create post to Google Sheets:', error);
-    return null;
+    return await fetchPostsFromSheets();
   }
 }
