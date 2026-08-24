@@ -215,7 +215,7 @@ export async function toggleFavorite(
 const initialPosts: Post[] = [
   {
     id: 'post-1',
-    type: 'info',
+    type: 'その他',
     content: 'DLE TOOL HUB へようこそ！社内ツール一覧と共有メモ欄が利用可能です。',
     author_name: '管理者',
     author_email: 'admin@dle.jp',
