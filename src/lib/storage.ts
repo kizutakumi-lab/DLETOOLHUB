@@ -1,5 +1,12 @@
 import { Tool, Post, PostType } from '@/types';
 import { INITIAL_TOOLS } from './initialData';
+import {
+  fetchToolsFromSheets,
+  saveToolToSheets,
+  deleteToolFromSheets,
+  fetchPostsFromSheets,
+  createPostToSheets,
+} from './googleSheets';
 
 const STORAGE_KEYS = {
   TOOLS: 'dle_hub_tools',
@@ -12,16 +19,9 @@ const STORAGE_KEYS = {
 // -------------------------------------------------------------
 
 export async function fetchTools(): Promise<Tool[]> {
-  try {
-    const res = await fetch('/api/tools', { cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to fetch tools via API:', e);
+  const sheetTools = await fetchToolsFromSheets();
+  if (sheetTools && sheetTools.length > 0) {
+    return sheetTools;
   }
   return INITIAL_TOOLS;
 }
@@ -30,25 +30,18 @@ export async function saveTool(
   toolData: Omit<Tool, 'id'> & { id?: string },
   userEmail: string
 ): Promise<Tool[]> {
-  try {
-    const res = await fetch('/api/tools', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(toolData),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to save tool via API:', e);
+  const updated = await saveToolToSheets(toolData, userEmail);
+  if (updated && updated.length > 0) {
+    return updated;
   }
   return fetchTools();
 }
 
 export async function deleteTool(id: string): Promise<Tool[]> {
+  const updated = await deleteToolFromSheets(id);
+  if (updated && updated.length > 0) {
+    return updated;
+  }
   return fetchTools();
 }
 
@@ -95,16 +88,9 @@ export async function toggleFavorite(
 // -------------------------------------------------------------
 
 export async function fetchPosts(): Promise<Post[]> {
-  try {
-    const res = await fetch('/api/posts', { cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to fetch posts via API:', e);
+  const sheetPosts = await fetchPostsFromSheets();
+  if (sheetPosts && sheetPosts.length > 0) {
+    return sheetPosts;
   }
 
   return [
@@ -125,22 +111,10 @@ export async function createPost(
   authorName: string,
   authorEmail: string
 ): Promise<Post[]> {
-  try {
-    const res = await fetch('/api/posts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, content }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to create post via API:', e);
+  const updated = await createPostToSheets(type, content, authorName, authorEmail);
+  if (updated && updated.length > 0) {
+    return updated;
   }
-
   return fetchPosts();
 }
 

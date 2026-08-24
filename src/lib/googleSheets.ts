@@ -1,7 +1,7 @@
 import { Tool, Post, PostType } from '@/types';
 
 const GAS_URL =
-  'https://script.google.com/a/macros/dle.jp/s/AKfycbwKzzW9px24Ge-Yxk8HHvmrY1JkW-x73uW99pZM5sO2wMUAQt8Gzj8T-YTfUHsKPFq3/exec';
+  'https://script.google.com/a/macros/dle.jp/s/AKfycbzaVXPx16lhLdWbFetjbyQobnTOI0XaNzh_p75a_8tLuV8192xo5ep0GpDQPhe-TbSZ/exec';
 
 export const isGoogleSheetsConfigured = true;
 
@@ -16,7 +16,7 @@ export async function fetchToolsFromSheets(): Promise<Tool[] | null> {
     });
     const text = await res.text();
     if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-      console.error('GAS returned HTML (login page) instead of JSON:', text.substring(0, 200));
+      console.warn('GAS fetchTools non-JSON response:', text.substring(0, 100));
       return null;
     }
     const data = JSON.parse(text);
@@ -47,7 +47,6 @@ export async function saveToolToSheets(
     });
     const text = await res.text();
     if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-      console.error('GAS POST returned HTML:', text.substring(0, 200));
       return null;
     }
     const data = JSON.parse(text);
@@ -95,7 +94,7 @@ export async function fetchPostsFromSheets(): Promise<Post[] | null> {
     });
     const text = await res.text();
     if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-      console.error('GAS getPosts returned HTML:', text.substring(0, 200));
+      console.warn('GAS fetchPosts non-JSON response:', text.substring(0, 100));
       return null;
     }
     const data = JSON.parse(text);
@@ -130,7 +129,7 @@ export async function createPostToSheets(
     });
     const text = await res.text();
     if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-      console.error('GAS createPost returned HTML:', text.substring(0, 200));
+      console.warn('GAS createPost non-JSON response:', text.substring(0, 100));
       return null;
     }
     const data = JSON.parse(text);
