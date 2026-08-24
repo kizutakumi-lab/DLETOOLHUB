@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { fetchToolsFromSheets, saveToolToSheets } from '@/lib/googleSheets';
+import { fetchToolsFromSheets, saveToolToSheets, deleteToolFromSheets } from '@/lib/googleSheets';
 
 export async function GET() {
   const tools = await fetchToolsFromSheets();
@@ -9,11 +7,13 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
   try {
     const body = await req.json();
-    const userEmail = session?.user?.email || 'admin@dle.jp';
-    const updated = await saveToolToSheets(body, userEmail);
+    if (body.action === 'delete') {
+      const updated = await deleteToolFromSheets(body.id);
+      return NextResponse.json(updated || []);
+    }
+    const updated = await saveToolToSheets(body.tool || body, body.userEmail || 'user@dle.jp');
     return NextResponse.json(updated || []);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });

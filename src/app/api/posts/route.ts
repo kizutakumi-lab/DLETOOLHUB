@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { fetchPostsFromSheets, createPostToSheets } from '@/lib/googleSheets';
 
 export async function GET() {
@@ -9,12 +7,16 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  const { type, content } = await req.json();
-
-  const authorName = session?.user?.name || '社内ユーザー';
-  const authorEmail = session?.user?.email || 'kizu.takumi@dle.jp';
-
-  const updated = await createPostToSheets(type, content, authorName, authorEmail);
-  return NextResponse.json(updated || []);
+  try {
+    const body = await req.json();
+    const updated = await createPostToSheets(
+      body.type || 'その他',
+      body.content || '',
+      body.authorName || '社内ユーザー',
+      body.authorEmail || 'user@dle.jp'
+    );
+    return NextResponse.json(updated || []);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to process post request' }, { status: 500 });
+  }
 }
