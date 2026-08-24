@@ -1,6 +1,5 @@
 import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import CredentialsProvider from 'next-auth/providers/credentials';
 
 export const ALLOWED_DOMAIN = 'dle.jp';
 
@@ -17,13 +16,11 @@ export function isAdminUser(email: string | null | undefined): boolean {
   return adminEmails.includes(email.toLowerCase());
 }
 
-const providers = [];
-
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  providers.push(
+export const authOptions: NextAuthOptions = {
+  providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: process.env.GOOGLE_CLIENT_ID || 'dummy_client_id',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy_client_secret',
       authorization: {
         params: {
           prompt: 'select_account',
@@ -31,42 +28,16 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           response_type: 'code',
         },
       },
-    })
-  );
-}
-
-// 開発・テスト環境用フォールバック (401 invalid_client エラーの100%防止)
-providers.push(
-  CredentialsProvider({
-    id: 'dle-dev-login',
-    name: 'DLE 社内アカウントログイン',
-    credentials: {
-      email: { label: 'メールアドレス', type: 'email', value: 'kizu.takumi@dle.jp' },
-      name: { label: '氏名', type: 'text', value: 'takumi kizu' },
-    },
-    async authorize(credentials) {
-      const email = credentials?.email || 'kizu.takumi@dle.jp';
-      const name = credentials?.name || 'takumi kizu';
-
-      if (!isAllowedDomain(email)) {
-        return null;
-      }
-      return {
-        id: 'dle-user-1',
-        name,
-        email,
-        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DLE',
-      };
-    },
-  })
-);
-
-export const authOptions: NextAuthOptions = {
-  providers,
+    }),
+  ],
   callbacks: {
     async signIn({ user }) {
       if (!user.email) return false;
-      return isAllowedDomain(user.email);
+      const allowed = isAllowedDomain(user.email);
+      if (!allowed) {
+        return '/login?error=AccessDenied';
+      }
+      return true;
     },
     async redirect({ url, baseUrl }) {
       if (url.startsWith('/')) return `${baseUrl}${url}`;
