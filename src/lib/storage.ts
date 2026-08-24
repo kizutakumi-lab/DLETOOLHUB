@@ -2,7 +2,6 @@ import { Tool, Post, PostType } from '@/types';
 import { INITIAL_TOOLS } from './initialData';
 import { supabase, isSupabaseConfigured } from './supabase';
 import {
-  isGoogleSheetsConfigured,
   fetchToolsFromSheets,
   saveToolToSheets,
   deleteToolFromSheets,
@@ -21,30 +20,13 @@ const STORAGE_KEYS = {
 // -------------------------------------------------------------
 
 export async function fetchTools(): Promise<Tool[]> {
-  // Clientサイドの場合は /api/tools 経由で取得（CORS回避）
-  if (typeof window !== 'undefined') {
-    try {
-      const res = await fetch('/api/tools', { cache: 'no-store' });
-      if (res.ok) {
-        const tools = await res.json();
-        if (Array.isArray(tools) && tools.length > 0) {
-          return tools;
-        }
-      }
-    } catch (e) {
-      console.warn('API tools fetch error, trying direct fallback:', e);
-    }
+  // 1. Google スプレッドシート連携
+  const sheetTools = await fetchToolsFromSheets();
+  if (sheetTools && sheetTools.length > 0) {
+    return sheetTools;
   }
 
-  // Google スプレッドシート連携が設定されている場合 (Serverサイド)
-  if (isGoogleSheetsConfigured) {
-    const sheetTools = await fetchToolsFromSheets();
-    if (sheetTools && sheetTools.length > 0) {
-      return sheetTools;
-    }
-  }
-
-  // Supabase 連携が設定されている場合
+  // 2. Supabase 連携
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -61,7 +43,7 @@ export async function fetchTools(): Promise<Tool[]> {
     }
   }
 
-  // LocalStorage フォールバック
+  // 3. LocalStorage フォールバック
   if (typeof window === 'undefined') return INITIAL_TOOLS;
   const localData = localStorage.getItem(STORAGE_KEYS.TOOLS);
   if (!localData) {
@@ -80,46 +62,11 @@ export async function saveTool(
   toolData: Omit<Tool, 'id'> & { id?: string },
   userEmail: string
 ): Promise<Tool[]> {
-  // Google スプレッドシート連携
-  if (isGoogleSheetsConfigured) {
-    const updated = await saveToolToSheets(toolData, userEmail);
-    if (updated) return updated;
-  }
+  // 1. Google スプレッドシート連携
+  const updated = await saveToolToSheets(toolData, userEmail);
+  if (updated) return updated;
 
-  // Supabase 連携
-  if (isSupabaseConfigured && supabase) {
-    try {
-      if (toolData.id) {
-        await supabase
-          .from('tools')
-          .update({
-            name: toolData.name,
-            category: toolData.category,
-            color: toolData.color || 'blue',
-            url: toolData.url,
-            description: toolData.description,
-            sort_order: toolData.sort_order ?? 0,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', toolData.id);
-      } else {
-        await supabase.from('tools').insert({
-          name: toolData.name,
-          category: toolData.category,
-          color: toolData.color || 'blue',
-          url: toolData.url,
-          description: toolData.description,
-          sort_order: toolData.sort_order ?? 0,
-          created_by: userEmail,
-        });
-      }
-      return await fetchTools();
-    } catch (e) {
-      console.warn('Supabase save failed:', e);
-    }
-  }
-
-  // LocalStorage フォールバック
+  // 2. LocalStorage フォールバック
   const currentTools = await fetchTools();
   let updatedTools: Tool[];
 
@@ -156,19 +103,8 @@ export async function saveTool(
 }
 
 export async function deleteTool(id: string): Promise<Tool[]> {
-  if (isGoogleSheetsConfigured) {
-    const updated = await deleteToolFromSheets(id);
-    if (updated) return updated;
-  }
-
-  if (isSupabaseConfigured && supabase) {
-    try {
-      await supabase.from('tools').delete().eq('id', id);
-      return await fetchTools();
-    } catch (e) {
-      console.warn('Supabase delete failed:', e);
-    }
-  }
+  const updated = await deleteToolFromSheets(id);
+  if (updated) return updated;
 
   const currentTools = await fetchTools();
   const updatedTools = currentTools.filter((t) => t.id !== id);
@@ -236,24 +172,10 @@ const initialPosts: Post[] = [
 ];
 
 export async function fetchPosts(): Promise<Post[]> {
-  // Clientサイドの場合は /api/posts 経由で取得（CORS回避）
-  if (typeof window !== 'undefined') {
-    try {
-      const res = await fetch('/api/posts', { cache: 'no-store' });
-      if (res.ok) {
-        const posts = await res.json();
-        if (Array.isArray(posts) && posts.length > 0) {
-          return posts;
-        }
-      }
-    } catch (e) {
-      console.warn('API posts fetch error:', e);
-    }
-  }
-
-  if (isGoogleSheetsConfigured) {
-    const sheetPosts = await fetchPostsFromSheets();
-    if (sheetPosts) return sheetPosts;
+  // 1. Google スプレッドシートから最新投稿一覧を取得
+  const sheetPosts = await fetchPostsFromSheets();
+  if (sheetPosts && sheetPosts.length > 0) {
+    return sheetPosts;
   }
 
   if (typeof window === 'undefined') return initialPosts;
@@ -275,28 +197,13 @@ export async function createPost(
   authorName: string,
   authorEmail: string
 ): Promise<Post[]> {
-  // Clientサイドの場合は /api/posts 経由でPOST（CORS回避＆サーバーからGAS送信）
-  if (typeof window !== 'undefined') {
-    try {
-      const res = await fetch('/api/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, content }),
-      });
-      if (res.ok) {
-        const posts = await res.json();
-        if (Array.isArray(posts)) return posts;
-      }
-    } catch (e) {
-      console.warn('API createPost error:', e);
-    }
+  // 1. Google スプレッドシートに新規投稿
+  const updated = await createPostToSheets(type, content, authorName, authorEmail);
+  if (updated && updated.length > 0) {
+    return updated;
   }
 
-  if (isGoogleSheetsConfigured) {
-    const updated = await createPostToSheets(type, content, authorName, authorEmail);
-    if (updated) return updated;
-  }
-
+  // 2. LocalStorage フォールバック
   const current = await fetchPosts();
   const newPost: Post = {
     id: `post-${Date.now()}`,
@@ -306,12 +213,12 @@ export async function createPost(
     author_email: authorEmail,
     created_at: new Date().toISOString(),
   };
-  const updated = [newPost, ...current];
+  const result = [newPost, ...current];
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(updated));
+    localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(result));
   }
-  return updated;
+  return result;
 }
 
 export async function updatePost(

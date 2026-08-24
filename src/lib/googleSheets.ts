@@ -1,22 +1,16 @@
 import { Tool, Post, PostType } from '@/types';
 
-// Google Apps Script (GAS) Web App エンドポイント
-const DEFAULT_SHEETS_URL =
+const GAS_URL =
   'https://script.google.com/a/macros/dle.jp/s/AKfycbwKzzW9px24Ge-Yxk8HHvmrY1JkW-x73uW99pZM5sO2wMUAQt8Gzj8T-YTfUHsKPFq3/exec';
 
-const GOOGLE_SHEETS_API_URL =
-  process.env.NEXT_PUBLIC_GOOGLE_SHEETS_API_URL || DEFAULT_SHEETS_URL;
-
-export const isGoogleSheetsConfigured = Boolean(GOOGLE_SHEETS_API_URL);
+export const isGoogleSheetsConfigured = true;
 
 /**
  * Google スプレッドシートからツール一覧を取得
  */
 export async function fetchToolsFromSheets(): Promise<Tool[] | null> {
-  if (!GOOGLE_SHEETS_API_URL) return null;
-
   try {
-    const res = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getTools`, {
+    const res = await fetch(`${GAS_URL}?action=getTools`, {
       cache: 'no-store',
       redirect: 'follow',
     });
@@ -36,10 +30,8 @@ export async function saveToolToSheets(
   tool: Omit<Tool, 'id'> & { id?: string },
   userEmail: string
 ): Promise<Tool[] | null> {
-  if (!GOOGLE_SHEETS_API_URL) return null;
-
   try {
-    const res = await fetch(GOOGLE_SHEETS_API_URL, {
+    const res = await fetch(GAS_URL, {
       method: 'POST',
       redirect: 'follow',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -62,10 +54,8 @@ export async function saveToolToSheets(
  * Google スプレッドシートからツールを削除
  */
 export async function deleteToolFromSheets(id: string): Promise<Tool[] | null> {
-  if (!GOOGLE_SHEETS_API_URL) return null;
-
   try {
-    const res = await fetch(GOOGLE_SHEETS_API_URL, {
+    const res = await fetch(GAS_URL, {
       method: 'POST',
       redirect: 'follow',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -87,10 +77,8 @@ export async function deleteToolFromSheets(id: string): Promise<Tool[] | null> {
  * Google スプレッドシートから掲示板メモ一覧を取得
  */
 export async function fetchPostsFromSheets(): Promise<Post[] | null> {
-  if (!GOOGLE_SHEETS_API_URL) return null;
-
   try {
-    const res = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getPosts`, {
+    const res = await fetch(`${GAS_URL}?action=getPosts`, {
       cache: 'no-store',
       redirect: 'follow',
     });
@@ -112,10 +100,8 @@ export async function createPostToSheets(
   authorName: string,
   authorEmail: string
 ): Promise<Post[] | null> {
-  if (!GOOGLE_SHEETS_API_URL) return null;
-
   try {
-    const res = await fetch(GOOGLE_SHEETS_API_URL, {
+    const res = await fetch(GAS_URL, {
       method: 'POST',
       redirect: 'follow',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
