@@ -15,27 +15,40 @@ interface HubData {
   posts: Post[];
 }
 
+// プロセス内グローバルメモリキャッシュ (ファイル読み込み遅延による先祖返りを100%防止)
+let memoryCache: HubData | null = null;
+
 export function readHubData(): HubData {
+  if (memoryCache && Array.isArray(memoryCache.tools) && memoryCache.tools.length > 0) {
+    return memoryCache;
+  }
+
   try {
     if (fs.existsSync(DATA_FILE_PATH)) {
       const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
       const parsed = JSON.parse(content);
-      return {
+      const loaded: HubData = {
         tools: Array.isArray(parsed.tools) && parsed.tools.length > 0 ? parsed.tools : INITIAL_TOOLS,
         posts: Array.isArray(parsed.posts) && parsed.posts.length > 0 ? parsed.posts : INITIAL_POSTS,
       };
+      memoryCache = loaded;
+      return loaded;
     }
   } catch (error) {
     console.error('Failed to read data.json:', error);
   }
 
-  return {
+  memoryCache = {
     tools: INITIAL_TOOLS,
     posts: INITIAL_POSTS,
   };
+  return memoryCache;
 }
 
 export function writeHubData(data: HubData): void {
+  // メモリキャッシュを即時更新
+  memoryCache = data;
+
   try {
     const dir = path.dirname(DATA_FILE_PATH);
     if (!fs.existsSync(dir)) {
@@ -44,7 +57,7 @@ export function writeHubData(data: HubData): void {
     // 1. JSON 保存
     fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2), 'utf-8');
 
-    // 2. スプレッドシート直接インポート用 CSV 同期作成 (1行1レコード UTF-8 BOM)
+    // 2. CSV 出力 (UTF-8 BOM)
     let toolsCsv = 'ID,ツール名,カテゴリ,カラー,URL,説明文,表示順,作成者,更新日時\n';
     data.tools.forEach((t) => {
       toolsCsv += `"${t.id}","${t.name}","${t.category}","${t.color || 'blue'}","${t.url}","${(t.description || '').replace(/"/g, '""')}",${t.sort_order || 0},"${t.created_by || ''}","${t.updated_at || ''}"\n`;
