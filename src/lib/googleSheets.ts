@@ -1,8 +1,11 @@
 import { Tool, Post, PostType } from '@/types';
 
-// Google Apps Script (GAS) または Google Sheets API のエンドポイント
-// 環境変数 NEXT_PUBLIC_GOOGLE_SHEETS_API_URL が設定されている場合はそれを使用
-const GOOGLE_SHEETS_API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_API_URL || '';
+// Google Apps Script (GAS) Web App エンドポイント
+const DEFAULT_SHEETS_URL =
+  'https://script.google.com/a/macros/dle.jp/s/AKfycbwKzzW9px24Ge-Yxk8HHvmrY1JkW-x73uW99pZM5sO2wMUAQt8Gzj8T-YTfUHsKPFq3/exec';
+
+const GOOGLE_SHEETS_API_URL =
+  process.env.NEXT_PUBLIC_GOOGLE_SHEETS_API_URL || DEFAULT_SHEETS_URL;
 
 export const isGoogleSheetsConfigured = Boolean(GOOGLE_SHEETS_API_URL);
 
