@@ -1,13 +1,5 @@
 import { Tool, Post, PostType } from '@/types';
 import { INITIAL_TOOLS } from './initialData';
-import { supabase, isSupabaseConfigured } from './supabase';
-import {
-  fetchToolsFromSheets,
-  saveToolToSheets,
-  deleteToolFromSheets,
-  fetchPostsFromSheets,
-  createPostToSheets,
-} from './googleSheets';
 
 const STORAGE_KEYS = {
   TOOLS: 'dle_hub_tools',
@@ -20,105 +12,47 @@ const STORAGE_KEYS = {
 // -------------------------------------------------------------
 
 export async function fetchTools(): Promise<Tool[]> {
-  // 1. Google スプレッドシート連携
-  const sheetTools = await fetchToolsFromSheets();
-  if (sheetTools && sheetTools.length > 0) {
-    return sheetTools;
-  }
-
-  // 2. Supabase 連携
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('tools')
-        .select('*')
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        return data as Tool[];
-      }
-    } catch (e) {
-      console.warn('Supabase fetch failed:', e);
-    }
-  }
-
-  // 3. LocalStorage フォールバック
-  if (typeof window === 'undefined') return INITIAL_TOOLS;
-  const localData = localStorage.getItem(STORAGE_KEYS.TOOLS);
-  if (!localData) {
-    localStorage.setItem(STORAGE_KEYS.TOOLS, JSON.stringify(INITIAL_TOOLS));
-    return INITIAL_TOOLS;
-  }
-
   try {
-    return JSON.parse(localData);
-  } catch {
-    return INITIAL_TOOLS;
+    const res = await fetch('/api/tools', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to fetch tools via API:', e);
   }
+  return INITIAL_TOOLS;
 }
 
 export async function saveTool(
   toolData: Omit<Tool, 'id'> & { id?: string },
   userEmail: string
 ): Promise<Tool[]> {
-  // 1. Google スプレッドシート連携
-  const updated = await saveToolToSheets(toolData, userEmail);
-  if (updated) return updated;
-
-  // 2. LocalStorage フォールバック
-  const currentTools = await fetchTools();
-  let updatedTools: Tool[];
-
-  if (toolData.id) {
-    updatedTools = currentTools.map((t) =>
-      t.id === toolData.id
-        ? {
-            ...t,
-            ...toolData,
-            updated_at: new Date().toISOString(),
-          }
-        : t
-    );
-  } else {
-    const newTool: Tool = {
-      id: `tool-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      name: toolData.name,
-      category: toolData.category,
-      color: toolData.color || 'blue',
-      url: toolData.url,
-      description: toolData.description,
-      sort_order: toolData.sort_order ?? currentTools.length + 1,
-      created_by: userEmail,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    updatedTools = [...currentTools, newTool];
+  try {
+    const res = await fetch('/api/tools', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toolData),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to save tool via API:', e);
   }
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.TOOLS, JSON.stringify(updatedTools));
-  }
-  return updatedTools;
+  return fetchTools();
 }
 
 export async function deleteTool(id: string): Promise<Tool[]> {
-  const updated = await deleteToolFromSheets(id);
-  if (updated) return updated;
-
-  const currentTools = await fetchTools();
-  const updatedTools = currentTools.filter((t) => t.id !== id);
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.TOOLS, JSON.stringify(updatedTools));
-  }
-  return updatedTools;
+  return fetchTools();
 }
 
 export async function reorderTools(newTools: Tool[]): Promise<Tool[]> {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.TOOLS, JSON.stringify(newTools));
-  }
   return newTools;
 }
 
@@ -160,35 +94,29 @@ export async function toggleFavorite(
 // 掲示板メモ (Posts) の操作
 // -------------------------------------------------------------
 
-const initialPosts: Post[] = [
-  {
-    id: 'post-1',
-    type: 'その他',
-    content: 'DLE TOOL HUB へようこそ！社内ツール一覧と共有メモ欄が利用可能です。',
-    author_name: '管理者',
-    author_email: 'admin@dle.jp',
-    created_at: new Date().toISOString(),
-  },
-];
-
 export async function fetchPosts(): Promise<Post[]> {
-  // 1. Google スプレッドシートから最新投稿一覧を取得
-  const sheetPosts = await fetchPostsFromSheets();
-  if (sheetPosts && sheetPosts.length > 0) {
-    return sheetPosts;
+  try {
+    const res = await fetch('/api/posts', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to fetch posts via API:', e);
   }
 
-  if (typeof window === 'undefined') return initialPosts;
-  const data = localStorage.getItem(STORAGE_KEYS.POSTS);
-  if (!data) {
-    localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(initialPosts));
-    return initialPosts;
-  }
-  try {
-    return JSON.parse(data);
-  } catch {
-    return initialPosts;
-  }
+  return [
+    {
+      id: 'post-1',
+      type: '改修報告',
+      content: 'DLE社内ツールポータルをリリースしました！ツール追加のご要望は本メモ欄までお願いします。',
+      author_name: 'ポータル管理者',
+      author_email: 'admin@dle.jp',
+      created_at: new Date().toISOString(),
+    },
+  ];
 }
 
 export async function createPost(
@@ -197,28 +125,23 @@ export async function createPost(
   authorName: string,
   authorEmail: string
 ): Promise<Post[]> {
-  // 1. Google スプレッドシートに新規投稿
-  const updated = await createPostToSheets(type, content, authorName, authorEmail);
-  if (updated && updated.length > 0) {
-    return updated;
+  try {
+    const res = await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, content }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to create post via API:', e);
   }
 
-  // 2. LocalStorage フォールバック
-  const current = await fetchPosts();
-  const newPost: Post = {
-    id: `post-${Date.now()}`,
-    type,
-    content,
-    author_name: authorName,
-    author_email: authorEmail,
-    created_at: new Date().toISOString(),
-  };
-  const result = [newPost, ...current];
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(result));
-  }
-  return result;
+  return fetchPosts();
 }
 
 export async function updatePost(
@@ -226,23 +149,9 @@ export async function updatePost(
   content: string,
   type: PostType
 ): Promise<Post[]> {
-  const current = await fetchPosts();
-  const updated = current.map((p) =>
-    p.id === id ? { ...p, content, type } : p
-  );
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(updated));
-  }
-  return updated;
+  return fetchPosts();
 }
 
 export async function deletePost(id: string): Promise<Post[]> {
-  const current = await fetchPosts();
-  const updated = current.filter((p) => p.id !== id);
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(updated));
-  }
-  return updated;
+  return fetchPosts();
 }
