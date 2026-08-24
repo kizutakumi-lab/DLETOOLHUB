@@ -1,6 +1,15 @@
 import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 
+// Vercel環境での NEXTAUTH_URL / URLの自己補完ガード (Invalid URL防止)
+if (!process.env.NEXTAUTH_URL) {
+  if (process.env.VERCEL_URL) {
+    process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+  } else {
+    process.env.NEXTAUTH_URL = 'http://localhost:3000';
+  }
+}
+
 export const ALLOWED_DOMAIN = 'dle.jp';
 
 export function isAllowedDomain(email: string | null | undefined): boolean {
@@ -33,10 +42,6 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user }) {
       if (!user.email) return false;
-      
-      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === 'true') {
-        return true;
-      }
 
       const allowed = isAllowedDomain(user.email);
       if (!allowed) {
