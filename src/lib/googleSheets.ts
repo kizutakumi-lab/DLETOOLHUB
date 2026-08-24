@@ -13,8 +13,13 @@ export async function fetchToolsFromSheets(): Promise<Tool[]> {
     const res = await fetch(`${GAS_URL}?action=getTools`, {
       cache: 'no-store',
       redirect: 'follow',
+      credentials: 'include',
     });
     const text = await res.text();
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      console.error('GAS URL is requesting Google Login (HTML page returned). Please check GAS deployment permissions.');
+      return [];
+    }
     const data = JSON.parse(text);
     return Array.isArray(data.tools) ? data.tools : [];
   } catch (error) {
@@ -24,7 +29,7 @@ export async function fetchToolsFromSheets(): Promise<Tool[]> {
 }
 
 /**
- * Google スプレッドシートにツールを保存 (追加・更新) して最新の全ツール配列を取得
+ * Google スプレッドシートにツールを保存 (追加・更新)
  */
 export async function saveToolToSheets(
   tool: Omit<Tool, 'id'> & { id?: string },
@@ -45,8 +50,12 @@ export async function saveToolToSheets(
     const res = await fetch(`${GAS_URL}?${params.toString()}`, {
       cache: 'no-store',
       redirect: 'follow',
+      credentials: 'include',
     });
     const text = await res.text();
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      return [];
+    }
     const data = JSON.parse(text);
     return Array.isArray(data.tools) ? data.tools : [];
   } catch (error) {
@@ -56,7 +65,7 @@ export async function saveToolToSheets(
 }
 
 /**
- * Google スプレッドシートからツールを削除して最新の全ツール配列を取得
+ * Google スプレッドシートからツールを削除
  */
 export async function deleteToolFromSheets(id: string): Promise<Tool[]> {
   try {
@@ -67,8 +76,12 @@ export async function deleteToolFromSheets(id: string): Promise<Tool[]> {
     const res = await fetch(`${GAS_URL}?${params.toString()}`, {
       cache: 'no-store',
       redirect: 'follow',
+      credentials: 'include',
     });
     const text = await res.text();
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      return [];
+    }
     const data = JSON.parse(text);
     return Array.isArray(data.tools) ? data.tools : [];
   } catch (error) {
@@ -85,8 +98,13 @@ export async function fetchPostsFromSheets(): Promise<Post[]> {
     const res = await fetch(`${GAS_URL}?action=getPosts`, {
       cache: 'no-store',
       redirect: 'follow',
+      credentials: 'include',
     });
     const text = await res.text();
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      console.error('GAS URL is requesting Google Login (HTML page returned). Please check GAS deployment permissions.');
+      return [];
+    }
     const data = JSON.parse(text);
     return Array.isArray(data.posts) ? data.posts : [];
   } catch (error) {
@@ -96,7 +114,7 @@ export async function fetchPostsFromSheets(): Promise<Post[]> {
 }
 
 /**
- * Google スプレッドシートに掲示板メモを投稿して最新の全メモ配列を取得
+ * Google スプレッドシートに掲示板メモを投稿
  */
 export async function createPostToSheets(
   type: PostType,
@@ -115,8 +133,12 @@ export async function createPostToSheets(
     const res = await fetch(`${GAS_URL}?${params.toString()}`, {
       cache: 'no-store',
       redirect: 'follow',
+      credentials: 'include',
     });
     const text = await res.text();
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      return [];
+    }
     const data = JSON.parse(text);
     return Array.isArray(data.posts) ? data.posts : [];
   } catch (error) {
