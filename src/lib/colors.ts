@@ -10,6 +10,7 @@ export interface ColorTheme {
   pickerBg: string;
   dotBg: string;
   pillBg: string;
+  hex: string;
 }
 
 export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
@@ -23,6 +24,7 @@ export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
     pickerBg: 'bg-blue-500',
     dotBg: 'bg-blue-400',
     pillBg: 'bg-blue-500',
+    hex: '#3b82f6',
   },
   emerald: {
     name: 'emerald',
@@ -34,6 +36,7 @@ export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
     pickerBg: 'bg-emerald-500',
     dotBg: 'bg-emerald-400',
     pillBg: 'bg-emerald-500',
+    hex: '#10b981',
   },
   teal: {
     name: 'teal',
@@ -45,6 +48,7 @@ export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
     pickerBg: 'bg-teal-500',
     dotBg: 'bg-teal-400',
     pillBg: 'bg-teal-500',
+    hex: '#14b8a6',
   },
   indigo: {
     name: 'indigo',
@@ -56,6 +60,7 @@ export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
     pickerBg: 'bg-indigo-500',
     dotBg: 'bg-indigo-400',
     pillBg: 'bg-indigo-500',
+    hex: '#6366f1',
   },
   purple: {
     name: 'purple',
@@ -67,6 +72,7 @@ export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
     pickerBg: 'bg-purple-500',
     dotBg: 'bg-purple-400',
     pillBg: 'bg-purple-500',
+    hex: '#a855f7',
   },
   amber: {
     name: 'amber',
@@ -78,6 +84,7 @@ export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
     pickerBg: 'bg-amber-500',
     dotBg: 'bg-amber-400',
     pillBg: 'bg-amber-500',
+    hex: '#f59e0b',
   },
   rose: {
     name: 'rose',
@@ -89,6 +96,7 @@ export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
     pickerBg: 'bg-rose-500',
     dotBg: 'bg-rose-400',
     pillBg: 'bg-rose-500',
+    hex: '#f43f5e',
   },
   cyan: {
     name: 'cyan',
@@ -100,6 +108,7 @@ export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
     pickerBg: 'bg-cyan-500',
     dotBg: 'bg-cyan-400',
     pillBg: 'bg-cyan-500',
+    hex: '#06b6d4',
   },
   orange: {
     name: 'orange',
@@ -111,6 +120,7 @@ export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
     pickerBg: 'bg-orange-500',
     dotBg: 'bg-orange-400',
     pillBg: 'bg-orange-500',
+    hex: '#f97316',
   },
   pink: {
     name: 'pink',
@@ -122,6 +132,7 @@ export const CATEGORY_COLORS: Record<CategoryColor, ColorTheme> = {
     pickerBg: 'bg-pink-500',
     dotBg: 'bg-pink-400',
     pillBg: 'bg-pink-500',
+    hex: '#ec4899',
   },
 };
 
