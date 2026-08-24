@@ -14,8 +14,12 @@ export async function fetchToolsFromSheets(): Promise<Tool[] | null> {
       cache: 'no-store',
       redirect: 'follow',
     });
-    if (!res.ok) return null;
-    const data = await res.json();
+    const text = await res.text();
+    if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+      console.error('GAS returned HTML (login page) instead of JSON:', text.substring(0, 200));
+      return null;
+    }
+    const data = JSON.parse(text);
     return data.tools || null;
   } catch (error) {
     console.error('Failed to fetch tools from Google Sheets:', error);
@@ -41,8 +45,12 @@ export async function saveToolToSheets(
         userEmail,
       }),
     });
-    if (!res.ok) return null;
-    const data = await res.json();
+    const text = await res.text();
+    if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+      console.error('GAS POST returned HTML:', text.substring(0, 200));
+      return null;
+    }
+    const data = JSON.parse(text);
     return data.tools || null;
   } catch (error) {
     console.error('Failed to save tool to Google Sheets:', error);
@@ -64,8 +72,11 @@ export async function deleteToolFromSheets(id: string): Promise<Tool[] | null> {
         id,
       }),
     });
-    if (!res.ok) return null;
-    const data = await res.json();
+    const text = await res.text();
+    if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+      return null;
+    }
+    const data = JSON.parse(text);
     return data.tools || null;
   } catch (error) {
     console.error('Failed to delete tool from Google Sheets:', error);
@@ -82,8 +93,12 @@ export async function fetchPostsFromSheets(): Promise<Post[] | null> {
       cache: 'no-store',
       redirect: 'follow',
     });
-    if (!res.ok) return null;
-    const data = await res.json();
+    const text = await res.text();
+    if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+      console.error('GAS getPosts returned HTML:', text.substring(0, 200));
+      return null;
+    }
+    const data = JSON.parse(text);
     return data.posts || null;
   } catch (error) {
     console.error('Failed to fetch posts from Google Sheets:', error);
@@ -113,8 +128,12 @@ export async function createPostToSheets(
         authorEmail,
       }),
     });
-    if (!res.ok) return null;
-    const data = await res.json();
+    const text = await res.text();
+    if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+      console.error('GAS createPost returned HTML:', text.substring(0, 200));
+      return null;
+    }
+    const data = JSON.parse(text);
     return data.posts || null;
   } catch (error) {
     console.error('Failed to create post to Google Sheets:', error);
