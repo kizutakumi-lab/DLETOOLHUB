@@ -141,9 +141,35 @@ export async function updatePost(
   content: string,
   type: PostType
 ): Promise<Post[]> {
+  try {
+    const res = await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', id, content, type }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
+    }
+  } catch (e) {
+    console.error('Failed to update post:', e);
+  }
   return await fetchPosts();
 }
 
 export async function deletePost(id: string): Promise<Post[]> {
+  try {
+    const res = await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', id }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
+    }
+  } catch (e) {
+    console.error('Failed to delete post:', e);
+  }
   return await fetchPosts();
 }
